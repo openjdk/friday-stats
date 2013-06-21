@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+ Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
+ DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+
+ This code is free software; you can redistribute it and/or modify it
+ under the terms of the GNU General Public License version 2 only, as
+ published by the Free Software Foundation.
+
+ This code is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ version 2 for more details (a copy is included in the LICENSE file that
+ accompanied this code).
+
+ You should have received a copy of the GNU General Public License version
+ 2 along with this work; if not, write to the Free Software Foundation,
+ Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+
+ Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ or visit www.oracle.com if you need additional information or have any
+ questions.
+-->
+<project name="fridayStats" default="build">
+    <!-- javacLintSummary requires JDK 8 because it recompiles source code
+    in order to analyze the requisite diagnostics. The other utilities
+    just require JDK 7 or better.
+    You can override this path on the ant command line. -->
+    <property name="jdk" location="/opt/jdk/1.8.0"/>
+
+    <target name="build" depends="buildLogFilter,buildLogWarnSummary,javacLintSummary"/>
+
+    <target name="buildLogFilter" depends="compile-classes">
+        <jar destfile="dist/buildLogFilter.jar" basedir="build/classes"
+            includes="buildLogFilter/**">
+            <manifest>
+                <attribute name="Main-Class" value="buildLogFilter.Main"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="buildLogWarnSummary" depends="compile-classes">
+        <jar destfile="dist/buildLogWarnSummary.jar" basedir="build/classes"
+            includes="buildLogWarnSummary/**">
+            <manifest>
+                <attribute name="Main-Class" value="buildLogWarnSummary.Main"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="javacLintSummary" depends="compile-classes">
+        <jar destfile="dist/javacLintSummary.jar" basedir="build/classes"
+            includes="javacLintSummary/**">
+            <manifest>
+                <attribute name="Main-Class" value="javacLintSummary.Main"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="compile-classes">
+        <mkdir dir="build/classes"/>
+        <javac fork="true" executable="${jdk}/bin/javac"
+            destdir="build/classes"
+            srcdir="src"
+            classpath="${jdk}/lib/tools.jar"
+            debug="true"
+            includeantruntime="false"/>
+    </target>
+
+    <target name="clean">
+        <delete dir="build"/>
+        <delete dir="dist"/>
+    </target>
+
+</project>
