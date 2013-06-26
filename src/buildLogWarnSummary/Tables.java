@@ -54,7 +54,7 @@ public final class Tables {
     }
 
     Map<String,Integer> getStatistics() {
-        Map<String,Integer> stats = new LinkedHashMap<String,Integer>();
+        Map<String,Integer> stats = new LinkedHashMap<>();
         stats.put("total lines read", lines);
         stats.put("total warnings found", warnings);
         stats.put("unique warnings found", uniqueWarnings.size());
@@ -67,11 +67,8 @@ public final class Tables {
 
     public void read(File f) throws IOException {
         System.err.println("read " + f);
-        BufferedReader in = new BufferedReader(new FileReader(f));
-        try {
+        try (BufferedReader in = new BufferedReader(new FileReader(f))) {
             read(in);
-        } finally {
-            in.close();
         }
     }
 
@@ -109,6 +106,7 @@ public final class Tables {
                 unmatchedLocations++;
             } else {
                 add(pathTable, m.location, m);
+                add(areaTable, m.location.area, m);
             }
         }
 
@@ -118,7 +116,7 @@ public final class Tables {
     <T> void add(Map<T, Collection<Message>> map, T t, Message m) {
         Collection<Message> c = map.get(t);
         if (c == null)
-            map.put(t, c = new HashSet<Message>());
+            map.put(t, c = new HashSet<>());
         c.add(m);
     }
 
@@ -127,17 +125,12 @@ public final class Tables {
     int unmatchedLocations;
     int unmatchedMessages;
 
-    List<File> files = new ArrayList<File>();
-    Set<String> uniqueWarnings = new TreeSet<String>();
-
-    Map<Message.Kind, Collection<Message>> messageKindTable =
-            new TreeMap<Message.Kind, Collection<Message>>();
-
-    Map<Message.Location, Collection<Message>> pathTable =
-            new TreeMap<Message.Location, Collection<Message>>();
-
-    Map<Tool, Collection<Message>> toolTable =
-            new TreeMap<Tool, Collection<Message>>();
+    List<File> files = new ArrayList<>();
+    Set<String> uniqueWarnings = new TreeSet<>();
+    Map<Message.Kind, Collection<Message>> messageKindTable = new TreeMap<>();
+    Map<Message.Location, Collection<Message>> pathTable = new TreeMap<>();
+    Map<Tool, Collection<Message>> toolTable = new TreeMap<>();
+    Map<String, Collection<Message>> areaTable = new TreeMap<>();
 
     Messages msgs = new Messages();
 }

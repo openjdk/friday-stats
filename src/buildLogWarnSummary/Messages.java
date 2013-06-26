@@ -24,6 +24,7 @@
 package buildLogWarnSummary;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,6 +32,8 @@ import java.util.regex.Pattern;
 /**
  *
  * @author jjg
+ * @author Alexandre Boulgakov
+ * @author khazra
  */
 public class Messages {
 
@@ -54,6 +57,7 @@ public class Messages {
                 return msgPattern.matcher(line).matches();
             }
 
+            @Override
             public int compareTo(Kind o) {
                 int result = tool.name.compareTo(o.tool.name);
                 if (result == 0)
@@ -76,10 +80,29 @@ public class Messages {
         static class Location implements Comparable<Location> {
             String file;
             String path;
+            String area;
 
             Location(String file, String path) {
                 this.file = file;
-                this.path = path;
+                this.path = path.replace("\\", "/");
+
+                if (!path.endsWith(".java")) {
+                    this.area = "(Native)";
+                } else if (!path.contains("/")) {
+                    this.area = "(Unknown - possibly Swing)";
+                } else {
+                    String prefix = path;
+                    while (this.area == null) {
+                        int end = prefix.lastIndexOf("/");
+                        if (end < 0) {
+                            //area = areas.get("");
+                            this.area = path;
+                            break;
+                        }
+                        prefix = prefix.substring(0, end);
+                        this.area = areas.get(prefix);
+                    }
+                }
             }
 
             String getExtension() {
@@ -88,7 +111,7 @@ public class Messages {
             }
 
             String getPathDirectory() {
-                int sep = path.replace("\\", "/").lastIndexOf("/");
+                int sep = path.lastIndexOf("/");
                 return sep == -1 ? path : path.substring(0, sep);
             }
 
@@ -124,6 +147,7 @@ public class Messages {
             }
         }
 
+        @Override
         public String toString() {
             return kind + ": " + line;
         }
@@ -154,7 +178,8 @@ public class Messages {
         Pattern.compile(".*warning[^. /\\\\]*\\.(gif|png).*"),
         Pattern.compile("Dialog Warning for language .* built"),
         Pattern.compile(".* - [0-9]+ error\\(s\\), [0-9]+ warning\\(s\\)"),
-        Pattern.compile(".*com.sun.java.util.jar.pack.Utils\\$Pack200Logger warning.*")
+        Pattern.compile(".*com.sun.java.util.jar.pack.Utils\\$Pack200Logger warning.*"),
+        Pattern.compile(".*//.*warning expected here.*")
     };
 
     Message getMessage(String line) {
@@ -170,8 +195,8 @@ public class Messages {
 
     static class Tool implements Comparable<Tool> {
         final String name;
-        final List<Pattern> locnPatterns = new ArrayList<Pattern>();
-        final List<Message.Kind> kinds = new ArrayList<Message.Kind>();
+        final List<Pattern> locnPatterns = new ArrayList<>();
+        final List<Message.Kind> kinds = new ArrayList<>();
 
         protected Tool(String name) {
             this.name = name;
@@ -210,7 +235,10 @@ public class Messages {
                 location(".*\"([^\"]+/src/solaris/native/([^ ]+\\.(?:h|c|cpp)))\".*");
                 location(".*\"([^\"]+/src/([^ ]+\\.(?:h|c|cpp)))\".*");
                 location("^\"(([^ ]+\\.(?:h|c|cpp)))\".*");
+                location(".*([^ ]+/src/([^ ]+\\.(?:cpp|rc))).*");
 
+                kind(true, ".* function assumed not to throw an exception but does");
+                kind(true, ".* RC4003: not enough actual parameters for macro .*");
                 kind(false, "-xarch=.* is deprecated, use -m64 to create 64-bit programs");
                 kind(true, ".* hides the same name in an outer scope.");
                 kind(true, ".* hides the virtual function .*\\.");
@@ -362,6 +390,7 @@ public class Messages {
         new Tool("HotSpot") {
             {
                 kind(false, "Java HotSpot\\(TM\\) .* VM warning: increase O_BUFLEN in ostream.hpp -- output truncated");
+                kind(false, "Java HotSpot\\(TM\\) .* VM warning: ignoring option .*");
             }
         },
 
@@ -379,15 +408,183 @@ public class Messages {
             {
                 location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
                 location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/gensrc/([^ ]+\\.java)):.*");
 
+                kind(true, ".* tag has no arguments.");
+                kind(true, "auxiliary class .* in .* should not be accessed from outside its own source file");
                 kind(false, "cast to .* for a non-varargs call and to suppress this warning");
-                kind(false, "\\[options\\] bootstrap class path not set in conjunction with -source .*");
-                kind(true, "\\[deprecation\\] .* in .* has been deprecated");
-                kind(true, "\\[overrides\\] Class .* overrides equals, but neither it nor any superclass overrides hashCode method");
-                kind(true, "\\[serial\\] serializable class .* has no definition of serialVersionUID");
                 kind(true, "change obsolete notation for MethodHandle invocations from .* to .*");
                 kind(true, "non-varargs call of varargs method with inexact argument type for last parameter");
+                kind(true, "unreachable catch clause");
             }
+        },
+
+        new Tool("javac [cast]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/gensrc/([^ ]+\\.java)):.*");
+
+                kind(true, "redundant cast to .*");
+             }
+        },
+
+        new Tool("javac [deprecation]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/gensrc/([^ ]+\\.java)):.*");
+
+                kind(true, ".* in .* has been deprecated");
+             }
+        },
+
+        new Tool("javac [dep-ann]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+
+                kind(true, "deprecated item is not annotated with @Deprecated");
+             }
+        },
+
+        new Tool("javac [empty]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+
+                kind(true, "empty statement after if");
+            }
+        },
+
+        new Tool("javac [fallthrough]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+
+                kind(true, "possible fall-through into case");
+             }
+        },
+
+        new Tool("javac [options]") {
+            {
+                kind(false, "bootstrap class path not set in conjunction with -source .*");
+            }
+        },
+
+        new Tool("javac [overrides]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+
+                kind(true, "Class .* overrides equals, but neither it nor any superclass overrides hashCode method");
+            }
+        },
+
+        new Tool("javac [path]") {
+            {
+                kind(false, "bad path element \\\".*\\\": no such file or directory");
+            }
+        },
+
+        new Tool("javac [rawtypes]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/gensrc/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/1.2src/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/(tools/[^ ]+\\.java)):.*");
+
+                kind(true, "found raw type: .*");
+            }
+        },
+
+        new Tool("javac [serial]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/gensrc/([^ ]+\\.java)):.*");
+
+                kind(true, "serializable class .* has no definition of serialVersionUID");
+             }
+         },
+
+         new Tool("javac [static]") {
+             {
+                 location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/gensrc/([^ ]+\\.java)):.*");
+
+                 kind(true, "static method should be qualified by type name, .*, instead of by an expression");
+                 kind(true, "static variable should be qualified by type name, .*, instead of by an expression");
+             }
+         },
+
+         new Tool("javac [try]") {
+             {
+                 location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+
+                 kind(true, "auto-closeable resource AutoCloseable has a member method close\\(\\) that could throw InterruptedException");
+             }
+         },
+
+         new Tool("javac [unchecked]") {
+             {
+                 location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/src/windows/classes/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/src/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/gensrc/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/1.2src/([^ ]+\\.java)):.*");
+                 location(".*([^ ]+/(tools/[^ ]+\\.java)):.*");
+
+                 kind(true, "\\[unchecked\\] Possible heap pollution from parameterized vararg type E");
+                 kind(true, ".*\\(.*\\) in .* implements .*\\(.*\\) in .*");
+                 kind(true, ".*\\(.*\\) in .* overrides .*\\(.*\\) in .*");
+                 kind(true, "unchecked call to .* as a member of the raw type .*");
+                 kind(true, "unchecked cast");
+                 kind(true, "unchecked conversion");
+                 kind(true, "unchecked method invocation: method .* in class .* is applied to given types");
+                 kind(true, "unchecked method invocation: constructor .* in class .* is applied to given types");
+                 kind(true, "unchecked method invocation: method .* in interface .* is applied to given types");
+                 kind(true, "unchecked assignment to variable discovered as member of raw type *");
+            }
+        },
+
+        new Tool("javac [overrides]") {
+            {
+                location(".*([^ ]+/(com/sun/org/[^ ]+\\.java)):.*");
+                location(".*([^ ]+/(org/jcp/xml/[^ ]+\\.java)):.*");
+
+                kind(true, "\\[overrides\\] Class .* overrides equals, but neither it nor any superclass overrides hashCode method");
+
+            }
+        },
+
+        new Tool("javac [varargs]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+
+                kind(true, "Varargs method could cause heap pollution from non-reifiable varargs parameter *");
+
+            }
+        },
+
+        new Tool("javac [finally]") {
+            {
+                location(".*([^ ]+/src/share/classes/([^ ]+\\.java)):.*");
+                location(".*([^ ]+/src/solaris/classes/([^ ]+\\.java)):.*");
+
+                kind(true, "finally clause cannot complete normally");
+
+             }
         },
 
         new Tool("javadoc") {
@@ -587,4 +784,112 @@ public class Messages {
             }
         }
     };
+
+    static HashMap<String, String> areas = new HashMap<>();
+    {
+        areas.put("build/tools", "Build Tools");
+
+        areas.put("com/sun/crypto", "Security");
+        areas.put("com/sun/org/apache/xml/internal/security", "Security");
+        areas.put("org/jcp/xml/dsig", "Security");
+        areas.put("org/ietf/jgss", "Security");
+        areas.put("sun/security", "Security");
+        areas.put("com/sun/security", "Security");
+        areas.put("javax/crypto", "Security");
+        areas.put("javax/security", "Security");
+        areas.put("javax/xml/crypto", "Security");
+        areas.put("com/sun/net/ssl", "Security");
+        areas.put("java/security", "Security");
+        areas.put("javax/net/ssl", "Security");
+        areas.put("javax/smartcardio", "Security");
+
+        areas.put("com/sun/imageio", "Image I/O");
+        areas.put("javax/imageio", "Image I/O");
+
+        areas.put("sun/swing", "Swing");
+        areas.put("javax/swing", "Swing");
+        areas.put("com/sun/java/swing", "Swing");
+        // See also Location constructor
+
+        areas.put("sun/awt", "AWT");
+        areas.put("java/awt", "AWT");
+
+        areas.put("java/beans", "JavaBeans(tm)");
+        areas.put("com/sun/beans", "JavaBeans(tm)");
+        areas.put("sun/beans", "JavaBeans(tm)");
+        areas.put("tools/swing-beans", "JavaBeans(tm)");
+
+        areas.put("javax/print", "Print Service");
+        areas.put("sun/print", "Print Service");
+
+        areas.put("java/util/concurrent", "Concurrency Utilities");
+
+        areas.put("com/sun/tools/jdi", "Debugger Architecture");
+        areas.put("com/sun/jdi", "Debugger Architecture");
+
+        areas.put("com/sun/nio", "I/O");
+        areas.put("sun/io", "I/O");
+        areas.put("sunw/io", "I/O");
+        areas.put("sun/nio", "I/O");
+        areas.put("java/io", "I/O");
+        areas.put("java/nio", "I/O");
+
+        areas.put("com/sun/jndi", "JNDI");
+        areas.put("com/sun/naming", "JNDI");
+        areas.put("javax/naming", "JNDI");
+
+        areas.put("java/util/jar", "Java Archive (JAR) Files");
+        areas.put("com/sun/java/util/jar", "Java Archive (JAR) Files");
+
+        areas.put("java/applet", "JDK Tools & Utilities");
+        areas.put("sun/applet", "JDK Tools & Utilities");
+        areas.put("sun/tools", "JDK Tools & Utilities");
+        areas.put("com/sun/tools", "JDK Tools & Utilities");
+        areas.put("sun/launcher", "JDK Tools & Utilities");
+
+        areas.put("java/text", "Input Method Framework");
+        areas.put("sun/font", "Input Method Framework");
+        areas.put("sun/text", "Input Method Framework");
+
+        areas.put("javax/sound", "Sound");
+        areas.put("com/sun/media/sound", "Sound");
+        areas.put("sun/audio", "Sound");
+
+        areas.put("com/sun/rmi", "Remote Method Invocation");
+        areas.put("sun/rmi", "Remote Method Invocation");
+        areas.put("java/rmi", "Remote Method Invocation");
+        areas.put("sun/invoke", "Remote Method Invocation");
+
+        areas.put("sun/java2d", "Java 2D(tm) Graphics and Imaging");
+
+        areas.put("sun/reflect", "Reflection");
+
+        areas.put("sun/management", "Monitoring and Management");
+        areas.put("com/sun/management", "Monitoring and Management");
+        areas.put("com/sun/jmx", "Monitoring and Management");
+        areas.put("sun/jvmstat", "Monitoring and Management");
+        areas.put("javax/script", "Monitoring and Management");
+        areas.put("sun/instrument", "Monitoring and Management");
+        areas.put("sun/tracing", "Monitoring and Management");
+
+        areas.put("com/sun/rowset", "Java Database Connectivity");
+        areas.put("java/sql", "Java Database Connectivity");
+        areas.put("javax/sql", "Java Database Connectivity");
+
+        areas.put("java/util", "Util package");
+        areas.put("sun/util", "Util package");
+        areas.put("sunw/util", "Util package");
+
+        areas.put("java/lang", "Lang package");
+
+        areas.put("com/sun/net", "Networking");
+        areas.put("sun/net", "Networking");
+        areas.put("java/net", "Networking");
+        areas.put("com/oracle/net", "Networking");
+        areas.put("com/sun/java/browser/dom", "Networking");
+
+        areas.put("sun/misc", "sun.misc");
+
+        areas.put("javax/accessibility", "Accessibility");
+    }
 }

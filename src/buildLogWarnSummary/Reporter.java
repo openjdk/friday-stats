@@ -55,7 +55,9 @@ public abstract class Reporter {
         KIND_COUNTS_FREQ("Warning counts, sorted by frequency of kind"),
         KIND_UNKNOWN("Warnings with unrecognized kinds"),
         TOOL_COUNTS_ALPHA("Warning counts, sorted alphabetically by tool"),
-        TOOL_COUNTS_FREQ("Warning counts, sorted by frequency of tool");
+        TOOL_COUNTS_FREQ("Warning counts, sorted by frequency of tool"),
+        AREA_COUNTS_ALPHA("Warning counts, sorted alphabetically by area"),
+        AREA_COUNTS_FREQ("Warning counts, sorted by frequency of area");
         TableType(String title) {
             this.title = title;
         }
@@ -70,6 +72,7 @@ public abstract class Reporter {
     protected boolean showLocations;
     protected boolean showKinds;
     protected boolean showTools;
+    protected boolean showAreas;
     protected Tables referenceTables;
 
 
@@ -91,6 +94,10 @@ public abstract class Reporter {
 
     public void setShowTools(boolean b) {
         showTools = b;
+    }
+
+    public void setShowAreas(boolean b) {
+        showAreas = b;
     }
 
     public void setReference(Tables refTables) {
@@ -149,11 +156,17 @@ public abstract class Reporter {
                 writeList(KIND_UNKNOWN, unknownTypes);
         }
 
+        if (showAreas) {
+            Map<String,Integer> areaCountMap = count(t.areaTable);
+            writeTable(AREA_COUNTS_ALPHA, areaCountMap);
+            writeTable(AREA_COUNTS_FREQ, flip(areaCountMap, decreasing));
+        }
+
         endReport();
     }
 
     private Collection<? extends Collection<?>> getKindRows1(Collection<? extends Map.Entry<Message.Kind,Integer>> entries) throws IOException {
-        List<List<Object>> rows = new ArrayList<List<Object>>();
+        List<List<Object>> rows = new ArrayList<>();
         for (Map.Entry<Message.Kind,Integer> e: entries) {
             Message.Kind kind = e.getKey();
             Integer count = e.getValue();
@@ -164,7 +177,7 @@ public abstract class Reporter {
     }
 
     private Collection<? extends Collection<?>> getKindRows2(Collection<? extends Map.Entry<Integer,Message.Kind>> entries) throws IOException {
-        List<List<?>> rows = new ArrayList<List<?>>();
+        List<List<?>> rows = new ArrayList<>();
         for (Map.Entry<Integer,Message.Kind> e: entries) {
             Integer count = e.getKey();
             Message.Kind kind = e.getValue();
@@ -211,7 +224,7 @@ public abstract class Reporter {
     }
 
     private Collection<? extends Collection<?>> getRows(Collection<? extends Map.Entry<?,?>> entries) throws IOException {
-        List<List<?>> rows = new ArrayList<List<?>>();
+        List<List<?>> rows = new ArrayList<>();
         for (Map.Entry<?,?> e: entries) {
             rows.add(Arrays.asList(e.getKey(), e.getValue()));
         }
@@ -226,7 +239,7 @@ public abstract class Reporter {
     Map<String,Collection<String>> getDifference(
             Map<String, Collection<String>> a,
             Map<String, Collection<String>> b) {
-        Map<String,Collection<String>> results = new LinkedHashMap<String,Collection<String>>();
+        Map<String,Collection<String>> results = new LinkedHashMap<>();
         for (Map.Entry<String,Collection<String>> e: a.entrySet()) {
             Collection<String> d = getDifference(e.getValue(), b.get(e.getKey()));
             if (d != null)
@@ -241,7 +254,7 @@ public abstract class Reporter {
             return a;
 
         /* create a normalized version of b, with all digits removed. */
-        Collection<String> nb = new HashSet<String>();
+        Collection<String> nb = new HashSet<>();
         for (String s: b)
             nb.add(s.replaceAll("[0-9]+", ""));
 
@@ -250,7 +263,7 @@ public abstract class Reporter {
         for (String s: a) {
             if (!nb.contains(s.replaceAll("[0-9]+", ""))) {
                 if (results == null)
-                    results = new ArrayList<String>();
+                    results = new ArrayList<>();
                 results.add(s);
             }
         }
@@ -296,12 +309,12 @@ public abstract class Reporter {
 //    private final Pattern ignoreLine = Pattern.compile("([^:]+:)[0-9:]+:(.*)");
 
     <T> Map<String,Collection<T>> byExtension(Map<Message.Location,Collection<T>> map) {
-        Map<String,Collection<T>> results = new TreeMap<String,Collection<T>>();
+        Map<String,Collection<T>> results = new TreeMap<>();
         for (Map.Entry<Message.Location,Collection<T>> e: map.entrySet()) {
             String extn = e.getKey().getExtension();
             Collection<T> dest = results.get(extn);
             if (dest == null) {
-                dest = new LinkedHashSet<T>();
+                dest = new LinkedHashSet<>();
                 results.put(extn, dest);
             }
             dest.addAll(e.getValue());
@@ -310,12 +323,12 @@ public abstract class Reporter {
     }
 
     <T> Map<String,Collection<T>> byDirectory(Map<Message.Location,Collection<T>> map) {
-        Map<String,Collection<T>> results = new TreeMap<String,Collection<T>>();
+        Map<String,Collection<T>> results = new TreeMap<>();
         for (Map.Entry<Message.Location,Collection<T>> e: map.entrySet()) {
             String dir = e.getKey().getPathDirectory();
             Collection<T> dest = results.get(dir);
             if (dest == null) {
-                dest = new ArrayList<T>();
+                dest = new ArrayList<>();
                 results.put(dir, dest);
             }
             dest.addAll(e.getValue());
@@ -324,21 +337,22 @@ public abstract class Reporter {
     }
 
     <K> Map<K, Integer> count(Map<K,? extends Collection<?>> map) {
-        Map<K,Integer> results = new TreeMap<K,Integer>();
+        Map<K,Integer> results = new TreeMap<>();
         for (Map.Entry<K,? extends Collection<?>> e: map.entrySet())
             results.put(e.getKey(), e.getValue().size());
         return results;
     }
 
     <K,V> Collection<? extends Map.Entry<V,K>> flip(Map<K,V> map, Comparator<Map.Entry<V,?>> c) {
-        List<Map.Entry<V,K>> result = new ArrayList<Map.Entry<V,K>>();
+        List<Map.Entry<V,K>> result = new ArrayList<>();
         for (Map.Entry<K,V> e: map.entrySet())
-            result.add(new SimpleMapEntry<V,K>(e.getValue(), e.getKey()));
+            result.add(new SimpleMapEntry<>(e.getValue(), e.getKey()));
         Collections.sort(result, c);
         return result;
     }
 
     protected static Comparator<Map.Entry<Integer,?>> decreasing = new Comparator<Map.Entry<Integer,?>>() {
+        @Override
         public int compare(Map.Entry<Integer, ?> o1, Map.Entry<Integer, ?> o2) {
             int i1 = o1.getKey();
             int i2 = o2.getKey();
@@ -352,14 +366,17 @@ public abstract class Reporter {
             value = v;
         }
 
+        @Override
         public K getKey() {
             return key;
         }
 
+        @Override
         public V getValue() {
             return value;
         }
 
+        @Override
         public V setValue(V value) {
             throw new UnsupportedOperationException();
         }

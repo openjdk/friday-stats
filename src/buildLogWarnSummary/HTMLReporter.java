@@ -145,6 +145,15 @@ public class HTMLReporter extends Reporter {
             out.endTag(UL);
             writeIndexEntryEnd();
         }
+
+        if (showAreas) {
+            writeIndexEntryStart("Warnings categorized by area");
+            out.startTag(UL);
+            writeIndexEntry(AREA_COUNTS_ALPHA);
+            writeIndexEntry(AREA_COUNTS_FREQ);
+            out.endTag(UL);
+            writeIndexEntryEnd();
+        }
         out.endTag(UL);
     }
 

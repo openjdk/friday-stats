@@ -128,6 +128,12 @@ public class Main {
                 showKinds = true;
             }
         },
+        new Option("-a", false, "show warnings categorized by area") {
+            @Override
+            void process(String opt, Iterator<String> args) {
+                showAreas = true;
+            }
+        },
         new Option("-t", false, "show warnings categorized by tool") {
             @Override
             void process(String opt, Iterator<String> args) {
@@ -204,6 +210,7 @@ public class Main {
             showKinds = true;
             showLocations = true;
             showTools = true;
+            showAreas = true;
         }
 
         Tables ref = new Tables(refFiles);
@@ -218,6 +225,7 @@ public class Main {
         r.setShowLocations(showLocations);
         r.setShowKinds(showKinds);
         r.setShowTools(showTools);
+        r.setShowAreas(showAreas);
         r.setReference(ref);
         r.report(t);
     }
@@ -284,6 +292,7 @@ public class Main {
     boolean showLocations;
     boolean showKinds;
     boolean showTools;
+    boolean showAreas;
     List<File> inFiles = new ArrayList<>();
     List<File> refFiles = new ArrayList<>();
 }
