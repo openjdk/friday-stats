@@ -28,7 +28,7 @@
     You can override this path on the ant command line. -->
     <property name="jdk" location="/opt/jdk/1.8.0"/>
 
-    <target name="build" depends="buildLogFilter,buildLogWarnSummary,javacLintSummary,scripts"/>
+    <target name="build" depends="buildLogFilter,buildLogWarnSummary,classFileVersionSummary,javacLintSummary,scripts"/>
 
     <target name="buildLogFilter" depends="compile-classes">
         <jar destfile="dist/lib/buildLogFilter.jar" basedir="build/classes"
@@ -44,6 +44,15 @@
             includes="buildLogWarnSummary/**">
             <manifest>
                 <attribute name="Main-Class" value="buildLogWarnSummary.Main"/>
+            </manifest>
+        </jar>
+    </target>
+
+    <target name="classFileVersionSummary" depends="compile-classes">
+        <jar destfile="dist/classFileVersionSummary.jar" basedir="build/classes"
+            includes="classFileVersionSummary/**">
+            <manifest>
+                <attribute name="Main-Class" value="classFileVersionSummary.Main"/>
             </manifest>
         </jar>
     </target>
@@ -64,7 +73,9 @@
             srcdir="src"
             classpath="${jdk}/lib/tools.jar"
             debug="true"
-            includeantruntime="false"/>
+            includeantruntime="false">
+            <compilerarg value="-Xlint"/>
+        </javac>
     </target>
 
     <target name="scripts">

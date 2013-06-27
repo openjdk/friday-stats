@@ -28,6 +28,7 @@ package buildLogWarnSummary;
  * @author jjg
  */
 public class Fault extends Exception {
+    static final long serialVersionUID = -5272006868168781428L;
     Fault(String msg) {
         super(msg);
     }
