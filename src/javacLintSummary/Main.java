@@ -114,12 +114,13 @@ public class Main {
         out.println();
         out.println("Options:");
         out.println("  -bootclasspath, -classpath, -sourcepath");
-        out.println("                     all as for javac");
+        out.println("                     All as for javac");
         out.println("  -Xlint -Xlint:opts -Xdoclint and -Xdoclint:opts ");
-        out.println("                     all as for javac; default is -Xlint");
-        out.println("  -htmlDir dir       specifies directory for HTML report (no HTML if not provided)");
-        out.println("  -xml file          specifies file for XML report (no XML if not provided)");
-        out.println("  -title string      plain text title for report");
+        out.println("                     All as for javac; default is -Xlint");
+        out.println("  -htmlDir dir       Specifies directory for HTML report (no HTML if not provided)");
+        out.println("  -xml file          Specifies file for XML report (no XML if not provided)");
+        out.println("  -title string      Plain text title for report");
+        out.println("  -h -help --help    Show this message");
         out.println();
         out.println("Files-or-packages");
         out.println("  Files are recognized by ending in .java");

@@ -70,12 +70,15 @@ public class Main {
         out.println("  Report on the various class file versions found in class files.");
         out.println();
         out.println("Usage:");
-        out.println("  java -jar ClassFileVersionSummary.jar options ... files,,.");
+        out.println("  java -jar ClassFileVersionSummary.jar options ... files...");
         out.println();
         out.println("Options:");
-        out.println("  -xml file       Specify file for XML report.");
+        out.println("  -htmlDir dir       Specifies directory for HTML report (no HTML if not provided)");
+        out.println("  -xml file          Specifies file for XML report (no XML if not provided)");
+        out.println("  -title string      Plain text title for report");
+        out.println("  -h -help --help    Show this message");
         out.println();
-        out.println("logfile   logfile from JDK build at default log level");
+        out.println("files                One or more jar files, directories or .class files");
     }
 
     /**

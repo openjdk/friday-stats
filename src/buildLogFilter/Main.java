@@ -75,11 +75,12 @@ public class Main {
         out.println("  java -jar BuildLogFilter.jar options logfile");
         out.println();
         out.println("Options:");
-        out.println("  -q --quiet      Do not show the filtered log file; just show the ");
-        out.println("                  line count stats");
-        out.println("  -xml file       Specify file for XML report.");
+        out.println("  -h -help --help   Show this message");
+        out.println("  -q --quiet        Do not show the filtered log file; just show the ");
+        out.println("                    line count stats");
+        out.println("  -xml file         Specify file for XML report.");
         out.println();
-        out.println("logfile   logfile from JDK build at default log level");
+        out.println("logfile             logfile from JDK build at default log level");
     }
 
     /**
