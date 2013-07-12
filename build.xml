@@ -31,6 +31,7 @@
     <target name="build" depends="buildLogFilter,buildLogWarnSummary,classFileVersionSummary,javacLintSummary,scripts"/>
 
     <target name="buildLogFilter" depends="compile-classes">
+        <mkdir dir="dist/lib"/> 
         <jar destfile="dist/lib/buildLogFilter.jar" basedir="build/classes"
             includes="buildLogFilter/**">
             <manifest>
@@ -40,6 +41,7 @@
     </target>
 
     <target name="buildLogWarnSummary" depends="compile-classes">
+        <mkdir dir="dist/lib"/> 
         <jar destfile="dist/lib/buildLogWarnSummary.jar" basedir="build/classes"
             includes="buildLogWarnSummary/**">
             <manifest>
@@ -49,7 +51,8 @@
     </target>
 
     <target name="classFileVersionSummary" depends="compile-classes">
-        <jar destfile="dist/classFileVersionSummary.jar" basedir="build/classes"
+        <mkdir dir="dist/lib"/> 
+        <jar destfile="dist/lib/classFileVersionSummary.jar" basedir="build/classes"
             includes="classFileVersionSummary/**">
             <manifest>
                 <attribute name="Main-Class" value="classFileVersionSummary.Main"/>
@@ -58,6 +61,7 @@
     </target>
 
     <target name="javacLintSummary" depends="compile-classes">
+        <mkdir dir="dist/lib"/> 
         <jar destfile="dist/lib/javacLintSummary.jar" basedir="build/classes"
             includes="javacLintSummary/**">
             <manifest>
@@ -79,6 +83,7 @@
     </target>
 
     <target name="scripts">
+        <mkdir dir="dist/bin"/> 
         <copy todir="dist/bin">
             <fileset dir="scripts" includes="*.sh"/>
             <mapper type="glob" from="*.sh" to="*"/>
