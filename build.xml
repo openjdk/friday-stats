@@ -28,10 +28,10 @@
     You can override this path on the ant command line. -->
     <property name="jdk" location="/opt/jdk/1.8.0"/>
 
-    <target name="build" depends="buildLogFilter,buildLogWarnSummary,classFileVersionSummary,javacLintSummary,scripts"/>
+    <target name="build" depends="buildLogFilter,buildLogWarnSummary,buildLogWarnAnalyzer,classFileVersionSummary,javacLintSummary,scripts"/>
 
     <target name="buildLogFilter" depends="compile-classes">
-        <mkdir dir="dist/lib"/> 
+        <mkdir dir="dist/lib"/>
         <jar destfile="dist/lib/buildLogFilter.jar" basedir="build/classes"
             includes="buildLogFilter/**">
             <manifest>
@@ -41,7 +41,7 @@
     </target>
 
     <target name="buildLogWarnSummary" depends="compile-classes">
-        <mkdir dir="dist/lib"/> 
+        <mkdir dir="dist/lib"/>
         <jar destfile="dist/lib/buildLogWarnSummary.jar" basedir="build/classes"
             includes="buildLogWarnSummary/**">
             <manifest>
@@ -50,8 +50,18 @@
         </jar>
     </target>
 
+    <target name="buildLogWarnAnalyzer" depends="compile-classes">
+        <mkdir dir="dist/lib"/>
+        <jar destfile="dist/lib/buildLogWarnAnalyzer.jar" basedir="build/classes"
+            includes="buildLogWarnAnalyzer/**">
+            <manifest>
+                <attribute name="Main-Class" value="buildLogWarnAnalyzer.Main"/>
+            </manifest>
+        </jar>
+    </target>
+
     <target name="classFileVersionSummary" depends="compile-classes">
-        <mkdir dir="dist/lib"/> 
+        <mkdir dir="dist/lib"/>
         <jar destfile="dist/lib/classFileVersionSummary.jar" basedir="build/classes"
             includes="classFileVersionSummary/**">
             <manifest>
@@ -61,7 +71,7 @@
     </target>
 
     <target name="javacLintSummary" depends="compile-classes">
-        <mkdir dir="dist/lib"/> 
+        <mkdir dir="dist/lib"/>
         <jar destfile="dist/lib/javacLintSummary.jar" basedir="build/classes"
             includes="javacLintSummary/**">
             <manifest>
@@ -83,7 +93,7 @@
     </target>
 
     <target name="scripts">
-        <mkdir dir="dist/bin"/> 
+        <mkdir dir="dist/bin"/>
         <copy todir="dist/bin">
             <fileset dir="scripts" includes="*.sh"/>
             <mapper type="glob" from="*.sh" to="*"/>
