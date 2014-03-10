@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2013, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -119,6 +119,8 @@ public class Main {
         out.println("                     All as for javac; default is -Xlint");
         out.println("  -htmlDir dir       Specifies directory for HTML report (no HTML if not provided)");
         out.println("  -xml file          Specifies file for XML report (no XML if not provided)");
+        out.println("  -csv file          Specifies file for CSV report (no CSV if not provided)");
+        out.println("  -show-all-groups   Show all message groups, including those with no diagnostics");
         out.println("  -title string      Plain text title for report");
         out.println("  -h -help --help    Show this message");
         out.println();
@@ -148,6 +150,7 @@ public class Main {
 
     /**
      * API entry point.
+     * @param out log stream
      * @param args command line args
      * @return true if operation completed successfully
      * @throws IOException if an IO error occurs during execution
@@ -181,6 +184,54 @@ public class Main {
         opts.addAll(Arrays.asList("-Xmaxerrs", "9999"));
         opts.addAll(Arrays.asList("-Xmaxwarns", "9999"));
         Table t =  new Table(fm, files);
+
+        if (showAllGroups) {
+            boolean isLint = false;
+            boolean isDocLint = false;
+            for (String opt: opts) {
+                if (!isLint && opt.startsWith("-Xlint"))
+                    isLint = true;
+                if (!isDocLint && opt.startsWith("-Xdoclint"))
+                    isDocLint = true;
+            }
+
+            if (isLint)
+                // -Xlint categories
+                t.headings.addAll(Arrays.asList(
+                        "auxiliaryclass",
+                        "cast",
+                        "classfile",
+                        "deprecation",
+                        "dep-ann",
+                        "divzero",
+                        "empty",
+                        "fallthrough",
+                        "finally",
+                        "options",
+                        "overloads",
+                        "overrides",
+                        "path",
+                        "processing",
+                        "rawtypes",
+                        "serial",
+                        "static",
+                        "try",
+                        "unchecked",
+                        "varargs"
+                ));
+
+            if (isDocLint)
+                // -Xdoclint categories
+                t.headings.addAll(Arrays.asList(
+                        "accessibility",
+                        "html",
+                        "missing",
+                        "reference",
+                        "syntax"
+                ));
+        }
+
+
         out.println("Analyzing " + files.size() + " files");
         JavacTask task = (JavacTask) javac.getTask(null, fm, t, opts, null, files);
         fixupDocLint(task, opts);
@@ -191,6 +242,8 @@ public class Main {
             new HtmlTableWriter().write(title, t, htmlDir, args);
         if (xmlFile != null)
             new XMLTableWriter().write(title, t, xmlFile, args);
+        if (csvFile != null)
+            new CSVTableWriter().write(t, csvFile);
         return true;
     }
 
@@ -291,8 +344,12 @@ public class Main {
                 htmlDir = new File(args[++i]);
             else if (arg.equals("-xml") && i + 1 < args.length)
                 xmlFile = new File(args[++i]);
+            else if (arg.equals("-csv") && i + 1 < args.length)
+                csvFile = new File(args[++i]);
             else if (arg.equals("-title") && i + 1 < args.length)
                 title = args[++i];
+            else if (arg.equals("-show-all-groups"))
+                showAllGroups = true;
             else if (arg.matches("-h|-help|--help"))
                 help = true;
             else if (arg.startsWith("-"))
@@ -337,7 +394,9 @@ public class Main {
     List<String> items = new ArrayList<>();
     File htmlDir;
     File xmlFile;
+    File csvFile;
     String title;
+    boolean showAllGroups;
 
     /** The number of errors that have been reported. */
     int errors;
@@ -496,6 +555,55 @@ public class Main {
         }
 
         String col1f;
+    }
+
+    /**
+     * Write out results in csv format.
+     */
+    static class CSVTableWriter {
+        Table t;
+
+        void write(Table table, File csvFile) throws IOException {
+            try (PrintWriter out = new PrintWriter(new FileWriter(csvFile))) {
+                write(table, out);
+            }
+        }
+
+        void write(Table table, PrintWriter out) {
+            t = table;
+
+            if (t.map.isEmpty()) {
+                System.err.println("No warnings found");
+                return;
+            }
+
+            writeHeadings(out);
+            for (Map.Entry<String, Table.Row> e: t.map.entrySet()) {
+                writeRow(out, e.getKey(), e.getValue());
+            }
+            writeRow(out, "(total)", t.totals);
+        }
+
+        void writeHeadings(PrintWriter out) {
+            for (String w: t.headings) {
+                String head = w.length() <= 8 ? w : w.substring(0, 8);
+                out.print("," + head);
+            }
+            out.print(",(total)");
+            out.println();
+        }
+
+        void writeRow(PrintWriter out, String pkg, Table.Row row) {
+            int total = 0;
+            out.print(pkg);
+            for (String w: t.headings) {
+                int v = row.getCount(w);
+                out.print("," + v);
+                total += v;
+            }
+            out.print("," + total);
+            out.println();
+        }
     }
 
     /**
